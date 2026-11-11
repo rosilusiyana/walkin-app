@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pelaporan Customer Walk-In</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                            950: '#082f49',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="bg-brand-950 text-white sticky top-0 z-40 shadow-md border-b border-brand-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-sky-400 flex items-center justify-center text-white shadow-lg font-bold text-xl">
+                    <i class="fa-solid fa-users-line"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-wide text-white">WALK-IN REPORT SYSTEM</h1>
+                    <p class="text-xs text-brand-300">Pelaporan & Analytics Kunjungan Customer Walk-In</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2.5">
+                <button onclick="openFormModal()" class="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white font-semibold text-xs rounded-xl transition-all shadow-md flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Input Walk-In Baru
+                </button>
+                <button onclick="exportToCSV()" class="px-3.5 py-2 bg-brand-800 hover:bg-brand-900 text-brand-100 font-semibold text-xs rounded-xl transition-all border border-brand-700 flex items-center gap-2">
+                    <i class="fa-solid fa-file-csv"></i> Ekspor CSV
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Period Filter Bar -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-800 text-sm">Filter Periode Laporan</h3>
+                    <p class="text-xs text-slate-500">Pilih bulan dan tahun untuk menyaring statistik kunjungan</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 mb-0.5">Bulan:</label>
+                    <select id="filter-month" onchange="applyFilters()" class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        <option value="ALL">Semua Bulan</option>
+                        <option value="1">Januari</option>
+                        <option value="2">Februari</option>
+                        <option value="3">Maret</option>
+                        <option value="4">April</option>
+                        <option value="5">Mei</option>
+                        <option value="6">Juni</option>
+                        <option value="7">Juli</option>
+                        <option value="8">Agustus</option>
+                        <option value="9">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 mb-0.5">Tahun:</label>
+                    <select id="filter-year" onchange="applyFilters()" class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        <option value="ALL">Semua Tahun</option>
+                    </select>
+                </div>
+
+                <div class="self-end pb-0.5">
+                    <button onclick="resetDateFilters()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition-all">
+                        Reset Periode
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Customer Walk-in</p>
+                    <h3 id="kpi-total" class="text-2xl font-extrabold text-slate-900 mt-1">0</h3>
+                    <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-users text-brand-500 mr-1"></i> Total Periode Terpilih</p>
+                </div>
+                <div class="p-3 rounded-xl bg-brand-50 text-brand-600 text-xl">
+                    <i class="fa-solid fa-person-walking-luggage"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Deal / SPK</p>
+                    <h3 id="kpi-deal" class="text-2xl font-extrabold text-emerald-600 mt-1">0</h3>
+                    <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-circle-check text-emerald-500 mr-1"></i> Transaksi Closing</p>
+                </div>
+                <div class="p-3 rounded-xl bg-emerald-50 text-emerald-600 text-xl">
+                    <i class="fa-solid fa-handshake"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Prospect Follow-Up</p>
+                    <h3 id="kpi-prospect" class="text-2xl font-extrabold text-amber-600 mt-1">0</h3>
+                    <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-clock text-amber-500 mr-1"></i> Perlu Tindak Lanjut</p>
+                </div>
+                <div class="p-3 rounded-xl bg-amber-50 text-amber-600 text-xl">
+                    <i class="fa-solid fa-comments-dollar"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Conversion Rate</p>
+                    <h3 id="kpi-conversion" class="text-2xl font-extrabold text-sky-600 mt-1">0%</h3>
+                    <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-chart-line text-sky-500 mr-1"></i> Rasio Closing vs Walk-in</p>
+                </div>
+                <div class="p-3 rounded-xl bg-sky-50 text-sky-600 text-xl">
+                    <i class="fa-solid fa-percent"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visual Analytics Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col">
+                <div class="mb-4">
+                    <h3 class="font-bold text-slate-900 text-base">Distribusi Hasil Kunjungan</h3>
+                    <p class="text-xs text-slate-500">Persentase status prospek pada periode terpilih</p>
+                </div>
+                <div class="relative flex-1 flex items-center justify-center min-h-[240px]">
+                    <canvas id="chartOutcome"></canvas>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">Performa Sales (Total Walk-in vs Deal)</h3>
+                        <p class="text-xs text-slate-500">Jumlah penanganan pelanggan per petugas sales</p>
+                    </div>
+                    <span class="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-lg">Sales Performance</span>
+                </div>
+                <div class="relative flex-1 min-h-[240px]">
+                    <canvas id="chartSalesPerformance"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table Section -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-slate-100">
+                <div>
+                    <h3 class="font-bold text-slate-900 text-lg">Daftar Laporan Customer Walk-In</h3>
+                    <p class="text-xs text-slate-500">Data realtime kunjungan pelanggan di lokasi</p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" id="search-input" oninput="applyFilters()" placeholder="Cari nama/sales/unit..." class="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs w-48 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+
+                    <select id="filter-outcome" onchange="applyFilters()" class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        <option value="ALL">Semua Hasil</option>
+                        <option value="SPK / Deal">SPK / Deal</option>
+                        <option value="Follow Up - Hot">Follow Up - Hot</option>
+                        <option value="Follow Up - Warm">Follow Up - Warm</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Batal / Unqualified">Batal / Unqualified</option>
+                    </select>
+
+                    <select id="filter-unit" onchange="applyFilters()" class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        <option value="ALL">Semua Tipe Unit</option>
+                    </select>
+
+                    <button onclick="openFormModal()" class="px-3.5 py-1.5 bg-sky-500 hover:bg-sky-600 text-white font-semibold text-xs rounded-xl transition-all shadow-sm flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> Tambah Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left text-xs text-slate-700">
+                    <thead class="bg-slate-50 uppercase font-bold text-slate-600 border-b border-slate-200">
+                        <tr>
+                            <th class="py-3 px-3">Tanggal Kunjungan</th>
+                            <th class="py-3 px-3">Nama Customer</th>
+                            <th class="py-3 px-3">Tipe Unit</th>
+                            <th class="py-3 px-3">Sales / Handler</th>
+                            <th class="py-3 px-3">No. Telepon / WA</th>
+                            <th class="py-3 px-3 text-center">Hasil Kunjungan</th>
+                            <th class="py-3 px-3">Keterangan</th>
+                            <th class="py-3 px-3 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="walkin-table-body" class="divide-y divide-slate-100">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex items-center justify-between text-xs text-slate-500 pt-2">
+                <span id="showing-count">Menampilkan 0 data</span>
+                <span>* Data tersimpan aman di penyimpanan browser & dapat diexport ke CSV.</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Form: Add/Edit Walk-in -->
+    <div id="form-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 border border-slate-200 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h4 class="font-bold text-slate-900 text-base" id="modal-title">Input Customer Walk-In</h4>
+                <button onclick="closeFormModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="walkin-form" onsubmit="handleFormSubmit(event)" class="space-y-3.5 text-xs">
+                <input type="hidden" id="form-id">
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Nama Customer <span class="text-rose-500">*</span></label>
+                        <input type="text" id="form-name" required placeholder="Contoh: Budi Santoso" class="w-full px-3 py-2 border border-slate-300 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Tanggal Kunjungan <span class="text-rose-500">*</span></label>
+                        <input type="date" id="form-date" required class="w-full px-3 py-2 border border-slate-300 rounded-xl font-semibold text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Tipe Unit Diminati <span class="text-rose-500">*</span></label>
+                        <input type="text" id="form-unit" required placeholder="Contoh: SUV Premium / Unit A" class="w-full px-3 py-2 border border-slate-300 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Sales / Handler <span class="text-rose-500">*</span></label>
+                        <input type="text" id="form-sales" required placeholder="Nama Petugas Sales" class="w-full px-3 py-2 border border-slate-300 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">No. Telepon / WhatsApp <span class="text-rose-500">*</span></label>
+                        <input type="tel" id="form-phone" required placeholder="0812xxxxxxxx" class="w-full px-3 py-2 border border-slate-300 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Hasil Kunjungan <span class="text-rose-500">*</span></label>
+                        <select id="form-outcome" required class="w-full px-3 py-2 border border-slate-300 rounded-xl font-semibold text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="Follow Up - Warm">Follow Up - Warm</option>
+                            <option value="Follow Up - Hot">Follow Up - Hot</option>
+                            <option value="SPK / Deal">SPK / Deal</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Batal / Unqualified">Batal / Unqualified</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Keterangan / Catatan Tambahan</label>
+                    <textarea id="form-notes" rows="3" placeholder="Catatan nego, jadwal test drive, alih pembayaran, dsb..." class="w-full px-3 py-2 border border-slate-300 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none"></textarea>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                    <button type="button" onclick="closeFormModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-all">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-sky-500 hover:bg-sky-600 text-white font-bold rounded-xl transition-all shadow">
+                        Simpan Data
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 mt-auto">
+        &copy; 2026 Walk-In Customer Reporting System. Built with Tailwind CSS & Chart.js.
+    </footer>
+
+    <!-- Application Complete Script -->
+    <script>
+        const STORAGE_KEY = 'WALKIN_REPORTS_DATA_V3';
+
+        let walkinData = [];
+        let filteredData = [];
+
+        let chartOutcomeInstance = null;
+        let chartSalesPerformanceInstance = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            populateYearFilter();
+            populateUnitFilter();
+            applyFilters();
+            
+            // Set default date input today
+            document.getElementById('form-date').valueAsDate = new Date();
+        });
+
+        function loadData() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                try {
+                    walkinData = JSON.parse(stored);
+                } catch (e) {
+                    walkinData = [];
+                }
+            } else {
+                // Dummy Initial Data contoh
+                walkinData = [
+                    { id: '1', name: 'Andi Wijaya', date: '2026-03-01', unit: 'SUV Premium', sales: 'Rian', phone: '081234567890', outcome: 'SPK / Deal', notes: 'Langsung DP Cash' },
+                    { id: '2', name: 'Siti Rahma', date: '2026-03-05', unit: 'City Car X', sales: 'Dewi', phone: '081987654321', outcome: 'Follow Up - Hot', notes: 'Menunggu pencairan dana minggu depan' }
+                ];
+                saveData();
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(walkinData));
+        }
+
+        function populateYearFilter() {
+            const yearSelect = document.getElementById('filter-year');
+            const currentYear = new Date().getFullYear();
+            
+            let years = [...new Set(walkinData.map(item => {
+                if (item.date) return new Date(item.date).getFullYear();
+                return null;
+            }))].filter(Boolean);
+
+            if (!years.includes(currentYear)) years.push(currentYear);
+            years.sort((a, b) => b - a);
+
+            yearSelect.innerHTML = '<option value="ALL">Semua Tahun</option>';
+            years.forEach(y => {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                yearSelect.appendChild(opt);
+            });
+        }
+
+        function populateUnitFilter() {
+            const unitSelect = document.getElementById('filter-unit');
+            const currentVal = unitSelect.value;
+            unitSelect.innerHTML = '<option value="ALL">Semua Tipe Unit</option>';
+
+            const units = [...new Set(walkinData.map(item => item.unit))].filter(Boolean);
+            units.forEach(unit => {
+                const opt = document.createElement('option');
+                opt.value = unit;
+                opt.textContent = unit;
+                unitSelect.appendChild(opt);
+            });
+
+            unitSelect.value = currentVal;
+        }
+
+        function resetDateFilters() {
+            document.getElementById('filter-month').value = 'ALL';
+            document.getElementById('filter-year').value = 'ALL';
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
+            const outcomeVal = document.getElementById('filter-outcome').value;
+            const unitVal = document.getElementById('filter-unit').value;
+            const monthVal = document.getElementById('filter-month').value;
+            const yearVal = document.getElementById('filter-year').value;
+
+            filteredData = walkinData.filter(item => {
+                const itemDate = item.date ? new Date(item.date) : null;
+                
+                let matchMonth = true;
+                if (monthVal !== 'ALL' && itemDate) {
+                    matchMonth = (itemDate.getMonth() + 1) === parseInt(monthVal);
+                }
+
+                let matchYear = true;
+                if (yearVal !== 'ALL' && itemDate) {
+                    matchYear = itemDate.getFullYear() === parseInt(yearVal);
+                }
+
+                const matchSearch = item.name.toLowerCase().includes(searchVal) ||
+                                    item.sales.toLowerCase().includes(searchVal) ||
+                                    item.unit.toLowerCase().includes(searchVal) ||
+                                    item.phone.includes(searchVal);
+
+                const matchOutcome = outcomeVal === 'ALL' || item.outcome === outcomeVal;
+                const matchUnit = unitVal === 'ALL' || item.unit === unitVal;
+
+                return matchSearch && matchOutcome && matchUnit && matchMonth && matchYear;
+            });
+
+            renderTable();
+            renderKPIs();
+            renderCharts();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('walkin-table-body');
+            tbody.innerHTML = '';
+
+            document.getElementById('showing-count').innerText = `Menampilkan ${filteredData.length} dari ${walkinData.length} kunjungan`;
+
+            if (filteredData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="py-12 text-center text-slate-400">
+                            <div class="w-16 h-16 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-2xl mb-3">
+                                <i class="fa-solid fa-folder-open"></i>
+                            </div>
+                            <p class="font-bold text-slate-700 text-sm">Belum Ada Data Walk-In</p>
+                            <p class="text-xs text-slate-400 mt-1 mb-4">Silakan tambah data kunjungan customer walk-in baru.</p>
+                            <button onclick="openFormModal()" class="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white font-semibold text-xs rounded-xl shadow-sm inline-flex items-center gap-1.5 transition-all">
+                                <i class="fa-solid fa-plus"></i> Input Customer Walk-In
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            filteredData.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+
+                let outcomeBadge = '';
+                switch (item.outcome) {
+                    case 'SPK / Deal':
+                    case 'Deal / SPK':
+                        outcomeBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-check mr-1"></i> SPK / Deal</span>`;
+                        break;
+                    case 'Follow Up - Hot':
+                        outcomeBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200"><i class="fa-solid fa-fire mr-1"></i> Follow Up - Hot</span>`;
+                        break;
+                    case 'Follow Up - Warm':
+                    case 'Prospect / Follow Up':
+                        outcomeBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200"><i class="fa-solid fa-clock mr-1"></i> Follow Up - Warm</span>`;
+                        break;
+                    case 'Pending':
+                        outcomeBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-sky-100 text-sky-700 border border-sky-200"><i class="fa-solid fa-pause mr-1"></i> Pending</span>`;
+                        break;
+                    case 'Batal / Unqualified':
+                    case 'Batal':
+                        outcomeBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200"><i class="fa-solid fa-xmark mr-1"></i> Batal / Unqualified</span>`;
+                        break;
+                    default:
+                        outcomeBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">${escapeHTML(item.outcome)}</span>`;
+                }
+
+                const displayDate = item.date ? formatDateIndo(item.date) : '-';
+
+                tr.innerHTML = `
+                    <td class="py-3 px-3 text-slate-700 font-semibold whitespace-nowrap">${displayDate}</td>
+                    <td class="py-3 px-3 font-bold text-slate-900">${escapeHTML(item.name)}</td>
+                    <td class="py-3 px-3 font-semibold text-brand-700">${escapeHTML(item.unit)}</td>
+                    <td class="py-3 px-3 font-medium text-slate-800">${escapeHTML(item.sales)}</td>
+                    <td class="py-3 px-3 font-mono text-slate-600">${escapeHTML(item.phone)}</td>
+                    <td class="py-3 px-3 text-center">${outcomeBadge}</td>
+                    <td class="py-3 px-3 text-slate-600 max-w-xs truncate" title="${escapeHTML(item.notes)}">${escapeHTML(item.notes || '-')}</td>
+                    <td class="py-3 px-3 text-center space-x-1 whitespace-nowrap">
+                        <button onclick="openFormModal('${item.id}')" title="Edit Data" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-all">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button onclick="deleteWalkin('${item.id}')" title="Hapus Data" class="p-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg transition-all">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderKPIs() {
+            const total = filteredData.length;
+            const deal = filteredData.filter(i => i.outcome === 'SPK / Deal' || i.outcome === 'Deal / SPK').length;
+            const prospect = filteredData.filter(i => i.outcome.includes('Follow Up') || i.outcome.includes('Prospect')).length;
+            const conversion = total > 0 ? ((deal / total) * 100).toFixed(1) : '0';
+
+            document.getElementById('kpi-total').innerText = total;
+            document.getElementById('kpi-deal').innerText = deal;
+            document.getElementById('kpi-prospect').innerText = prospect;
+            document.getElementById('kpi-conversion').innerText = conversion + '%';
+        }
+
+        function renderCharts() {
+            // 1. Outcome Chart
+            const outcomesCount = {
+                'SPK / Deal': filteredData.filter(i => i.outcome === 'SPK / Deal' || i.outcome === 'Deal / SPK').length,
+                'Follow Up - Hot': filteredData.filter(i => i.outcome === 'Follow Up - Hot').length,
+                'Follow Up - Warm': filteredData.filter(i => i.outcome === 'Follow Up - Warm' || i.outcome === 'Prospect / Follow Up').length,
+                'Pending': filteredData.filter(i => i.outcome === 'Pending').length,
+                'Batal / Unqualified': filteredData.filter(i => i.outcome.includes('Batal')).length
+            };
+
+            const ctx1 = document.getElementById('chartOutcome').getContext('2d');
+            if (chartOutcomeInstance) chartOutcomeInstance.destroy();
+
+            chartOutcomeInstance = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(outcomesCount),
+                    datasets: [{
+                        data: filteredData.length > 0 ? Object.values(outcomesCount) : [1],
+                        backgroundColor: filteredData.length > 0 ? ['#10b981', '#f43f5e', '#f59e0b', '#0ea5e9', '#94a3b8'] : ['#e2e8f0'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+                    }
+                }
+            });
+
+            // 2. Sales Performance Chart
+            const salesMap = {};
+            filteredData.forEach(item => {
+                if (!salesMap[item.sales]) {
+                    salesMap[item.sales] = { total: 0, deal: 0 };
+                }
+                salesMap[item.sales].total += 1;
+                if (item.outcome === 'SPK / Deal' || item.outcome === 'Deal / SPK') {
+                    salesMap[item.sales].deal += 1;
+                }
+            });
+
+            const salesLabels = Object.keys(salesMap);
+            const salesTotals = salesLabels.map(s => salesMap[s].total);
+            const salesDeals = salesLabels.map(s => salesMap[s].deal);
+
+            const ctx2 = document.getElementById('chartSalesPerformance').getContext('2d');
+            if (chartSalesPerformanceInstance) chartSalesPerformanceInstance.destroy();
+
+            chartSalesPerformanceInstance = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: salesLabels.length > 0 ? salesLabels : ['Belum ada data'],
+                    datasets: [
+                        {
+                            label: 'Total Walk-In',
+                            data: salesLabels.length > 0 ? salesTotals : [0],
+                            backgroundColor: '#0ea5e9',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Deal / SPK',
+                            data: salesLabels.length > 0 ? salesDeals : [0],
+                            backgroundColor: '#10b981',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                    },
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        // Modal Form Management
+        function openFormModal(id = null) {
+            document.getElementById('form-modal').classList.remove('hidden');
+            const formTitle = document.getElementById('modal-title');
+            
+            if (id) {
+                formTitle.innerText = "Edit Data Customer Walk-In";
+                const item = walkinData.find(i => i.id === id);
+                if (item) {
+                    document.getElementById('form-id').value = item.id;
+                    document.getElementById('form-name').value = item.name;
+                    document.getElementById('form-date').value = item.date;
+                    document.getElementById('form-unit').value = item.unit;
+                    document.getElementById('form-sales').value = item.sales;
+                    document.getElementById('form-phone').value = item.phone;
+                    document.getElementById('form-outcome').value = item.outcome;
+                    document.getElementById('form-notes').value = item.notes || '';
+                }
+            } else {
+                formTitle.innerText = "Input Customer Walk-In Baru";
+                document.getElementById('walkin-form').reset();
+                document.getElementById('form-id').value = '';
+                document.getElementById('form-date').valueAsDate = new Date();
+            }
+        }
+
+        function closeFormModal() {
+            document.getElementById('form-modal').classList.add('hidden');
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('form-id').value;
+            const name = document.getElementById('form-name').value.trim();
+            const date = document.getElementById('form-date').value;
+            const unit = document.getElementById('form-unit').value.trim();
+            const sales = document.getElementById('form-sales').value.trim();
+            const phone = document.getElementById('form-phone').value.trim();
+            const outcome = document.getElementById('form-outcome').value;
+            const notes = document.getElementById('form-notes').value.trim();
+
+            if (id) {
+                // Update
+                walkinData = walkinData.map(item => {
+                    if (item.id === id) {
+                        return { id, name, date, unit, sales, phone, outcome, notes };
+                    }
+                    return item;
+                });
+            } else {
+                // Insert New
+                const newItem = {
+                    id: 'W-' + Date.now(),
+                    name, date, unit, sales, phone, outcome, notes
+                };
+                walkinData.unshift(newItem);
+            }
+
+            saveData();
+            populateYearFilter();
+            populateUnitFilter();
+            applyFilters();
+            closeFormModal();
+        }
+
+        function deleteWalkin(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus data walk-in ini?')) {
+                walkinData = walkinData.filter(i => i.id !== id);
+                saveData();
+                populateYearFilter();
+                populateUnitFilter();
+                applyFilters();
+            }
+        }
+
+        function exportToCSV() {
+            if (filteredData.length === 0) {
+                alert('Tidak ada data untuk diexport!');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "ID,Tanggal,Nama Customer,Tipe Unit,Sales,No Telepon,Hasil,Keterangan\r\n";
+
+            filteredData.forEach(row => {
+                csvContent += `"${row.id}","${row.date}","${row.name}","${row.unit}","${row.sales}","${row.phone}","${row.outcome}","${row.notes || ''}"\r\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `laporan_walkin_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function formatDateIndo(dateString) {
+            const options = { day: 'numeric', month: 'short', year: 'numeric' };
+            try {
+                return new Date(dateString).toLocaleDateString('id-ID', options);
+            } catch (e) {
+                return dateString;
+            }
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+</html>
